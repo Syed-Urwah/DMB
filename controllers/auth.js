@@ -8,6 +8,7 @@ import { getAuth, createUserWithEmailAndPassword, EmailAuthProvider, sendEmailVe
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import Otp from '../Models/Otp.js';
+import moment from 'moment/moment.js';
 
 
 //firebase
@@ -88,15 +89,17 @@ export const login = async (req, res) => {
 }
 
 export const emailSend = async (req, res) => {
-    const user = await User.findOne({ email: req.body.email });
+
+    try {
+        const user = await User.findOne({ email: req.body.email });
     if (user) {
 
-        const codeData = Math.floor((Math.random() * 1000000) + 23);
+        const codeData = Math.floor((Math.random() * 1000) + 23);
 
         const otp = new Otp({
             email: req.body.email,
             code: codeData,
-            expireIn: new Date().getTime()+300*10000
+            expireIn: new Date().getTime()+5*60000
         })
 
         otp.save();
@@ -135,15 +138,21 @@ export const emailSend = async (req, res) => {
     } else {
         res.status(200).send("email not exist")
     }
+    } catch (error) {
+        res.status(400).json(error);
+    }
+
+    
 
 
 }
 
 export const changePassword = async (req, res) => {
-    const otp = Otp.findOne({ email: req.body.email, code: req.body.otp });
+    const otp = await Otp.findOne({ email: req.body.email, code: req.body.otp });
     if (otp) {
         let currentTime = new Date().getTime();
-        let diff = otp.expireIn - currentTime;
+        if(currentTime < otp.expireIn){
+            let diff = otp.expireIn - currentTime;
             let user = await User.findOne({ email: req.body.email });
 
             const salt = bcrypt.genSaltSync(10);
@@ -152,6 +161,10 @@ export const changePassword = async (req, res) => {
             user.password = hash;
             user.save();
             res.status(200).json(user);
+        }else{
+            res.status(200).send("token expired")
+        }
+        
         
 
 

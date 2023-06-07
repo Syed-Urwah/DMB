@@ -2,7 +2,6 @@
 const app = express();
 import express from 'express';
 import mongoose from 'mongoose';
-import { MongoClient } from 'mongodb';
 import Auth from './routes/auth.js';
 import dotenv from 'dotenv'
 
